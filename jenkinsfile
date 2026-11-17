@@ -6,6 +6,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -14,30 +15,37 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Build started'
+                echo 'Building application...'
             }
         }
 
         stage('Test') {
             steps {
                 sh 'test -f index.html'
-                echo 'Test successful'
+                echo 'Testing successful'
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to EC2') {
             steps {
                 sshagent(credentials: ['ec2-deploy-key']) {
                     sh '''
                         scp -o StrictHostKeyChecking=yes \
-                        index.html deploy@172.31.44.203:/tmp/index.html
-
-                        ssh -o StrictHostKeyChecking=yes \
-                        deploy@172.31.44.203 \
-                        'sudo install -m 644 /tmp/index.html /var/www/html/index.html'
+                        index.html \
+                        deploy@172.31.44.203::/var/www/html/index.html
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Application deployed successfully!'
+        }
+
+        failure {
+            echo 'Deployment failed!'
         }
     }
 }
